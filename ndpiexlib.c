@@ -177,7 +177,21 @@ typedef struct ndpi_flow {
   void *src_id, *dst_id;
 } ndpi_flow_t;
 
+/* ***************************************************** */
 
+callback protocolHandler;
+
+void addProtocolHandler(callback handler) {
+    protocolHandler = handler;
+}
+
+void onProtocol(uint16_t id, const uint8_t *packet) {
+    if (protocolHandler) {
+        protocolHandler(id, packet);
+    }
+}
+
+/* ***************************************************** */
 
 static u_int32_t size_flow_struct = 0;
 static struct osdpi_flow *osdpi_flows;
@@ -470,7 +484,7 @@ static void terminateDetection(void)
     free(osdpi_flows);
 }
 
-static unsigned int packet_processing(const uint64_t time, const struct iphdr *iph, uint16_t ipsize, uint16_t rawsize)
+static unsigned int packet_processing(const uint64_t time, const struct iphdr *iph, uint16_t ipsize, uint16_t rawsize, const uint8_t *packet)
 {
     struct ndpi_id_struct *src = NULL;
     struct ndpi_id_struct *dst = NULL;
@@ -520,6 +534,7 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
     if (flow != NULL) {
         flow->detected_protocol = protocol;
 	///	printf("\nproto: %u %s",protocol.protocol, ndpi_get_proto_name(ndpi_struct, flow->detected_protocol.protocol) );
+	onProtocol(flow->detected_protocol.protocol, packet);
     }
     
     return 0;
@@ -622,7 +637,7 @@ static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header
             return;
         }
         // process the packet
-        packet_processing(time, iph, header->len - sizeof(struct ethhdr), header->len);
+        packet_processing(time, iph, header->len - sizeof(struct ethhdr), header->len, packet);
     }
 
 }
@@ -634,36 +649,30 @@ static void runPcapLoop(void)
     }
 }
 
-int main(int argc, char **argv)
-{
-    parseOptions(argc, argv);
 
-    setupDetection();
-
-    openPcapFile();
-    runPcapLoop();
-    closePcapFile();
-
-    printResults();
-
-    terminateDetection();
-
-    return 0;
-}
-
-/* ***************************************************** */
-
-callback protocolHandler;
-
-void addProtocolHandler(callback handler) {
-    protocolHandler = handler;
-}
-
-void onProtocol(uint16_t id, const uint8_t *packet) {
-    if (protocolHandler) {
-        protocolHandler(id, packet);
-    }
-}
 
 
 /*************************************************/
+
+struct timeval begin, end;
+u_int64_t tot_usec;
+
+void init() {
+    setupDetection();
+    gettimeofday(&begin, NULL);
+}
+
+void setDatalinkType(pcap_t *handle) {
+    _pcap_datalink_type = pcap_datalink(handle);
+
+}
+
+void processPacket(const struct pcap_pkthdr *header, const u_char *packet) {
+    pcap_packet_callback(NULL, header, packet);
+}
+
+void finish() {
+    gettimeofday(&end, NULL);
+    tot_usec = end.tv_sec*1000000 + end.tv_usec - (begin.tv_sec*1000000 + begin.tv_usec);
+    terminateDetection();
+}
