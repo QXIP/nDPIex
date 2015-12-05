@@ -1,0 +1,19 @@
+{
+  "name": "ndpi-node",
+  "description": "nDPI Node",
+  "author": "lmangani",
+  "dependencies": {
+    "ffi": "*",
+    "ref": "*",
+    "ref-array": "*",
+    "ref-struct": "*",
+    "pcap-parser": "*"
+
+  },
+  "config": {
+    "unsafe-perm":true
+  },
+  "scripts": {
+    "start": "node main.js ../pcap/lamernews.pcap"
+  }
+}
