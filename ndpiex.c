@@ -641,3 +641,28 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+/*************************************************/
+
+struct timeval begin, end;
+u_int64_t tot_usec;
+
+void init() {
+    setupDetection();
+    gettimeofday(&begin, NULL);
+}
+
+void setDatalinkType(pcap_t *handle) {
+    _pcap_datalink_type = pcap_datalink(handle);
+
+}
+
+void processPacket(const struct pcap_pkthdr *header, const u_char *packet) {
+    pcap_packet_callback(NULL, header, packet);
+}
+
+void finish() {
+    gettimeofday(&end, NULL);
+    tot_usec = end.tv_sec*1000000 + end.tv_usec - (begin.tv_sec*1000000 + begin.tv_usec);
+    terminateDetection();
+}
