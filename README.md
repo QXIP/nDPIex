@@ -39,5 +39,5 @@ cd lua; ./run_lua
 
 ### Node FFI example
 ```bash
-cd nodejs; ./run_node
+cd nodejs; npm install && npm start
 ```
