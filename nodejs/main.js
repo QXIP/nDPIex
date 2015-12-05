@@ -11,6 +11,7 @@ var ref = require("ref");
 var Struct = require('ref-struct');
 var ArrayType = require('ref-array');
 
+// GC workaround, temporary
 var finalize = require('finalize');
 
 /* PCAP Parser */
@@ -26,7 +27,7 @@ if (process.argv[2]) {
 
 /* NDPI CALLBACK */
 
-var voidPtr = ref.refType(ref.types.void);
+var voidPtr = exports.voidPtr = ref.refType(ref.types.void);
 var u_char = exports.u_char = Struct({
   __u_char: ref.types.uchar,
 });
@@ -44,14 +45,14 @@ var pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(pcap_handler);
 var uint8_t = exports.uint8_t = voidPtr;
 var uint8_tPtr = exports.uint8_tPtr = ref.refType(uint8_t);
 
-var callback = ffi.Function(ref.types.void, [
+var callback = exports.callback = ffi.Function(ref.types.void, [
   ref.types.int32,
   ref.refType(ref.types.uchar),
 ]);
 
-var callbackPtr = ref.refType(callback);
+var callbackPtr = exports.callback = ref.refType(callback);
 
-var ndpi = new ffi.Library('../ndpiexlib.so', {
+var ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
   init: [ref.types.void, [
   ]],
   setDatalinkType: [ref.types.void, [
@@ -116,14 +117,22 @@ pcap_parser.on('packet', function (raw_packet) {
 		newHdr.incl_len=header.capturedLength;
 		newHdr.orig_len=header.originalLength;
 
-    	ndpi.processPacket(newHdr.ref(), raw_packet.data );
+    	if (ndpi) ndpi.processPacket(newHdr.ref(), raw_packet.data );
 });
 
 pcap_parser.on('end', function () {
-	ndpi.finish();
+	if (ndpi) ndpi.finish();
 });
 
 var exit = false;
+
+process.on('exit', function() {
+		// GC workaround, temporary
+		finalize(ndpi, function (a) { console.log('GC!',a) });
+		finalize(callback, function (a) { console.log('GC!',a) });
+		finalize(callbackPtr, function (a) { console.log('GC!',a) });
+		finalize(pcapp, function (a) { console.log('GC!',a) });
+});
 
 process.on('SIGINT', function() {
     console.log();
@@ -140,18 +149,4 @@ process.on('SIGINT', function() {
     }
 });
 
-process.on('exit', function() {
-	setTimeout(function () {
-		// DEBUG
-		finalize(callback, function (a) {
-		  console.log('GC!',a); 
-		});
-		finalize(callbackPtr, function (a) {
-		  console.log('GC!',a); 
-		});
-		finalize(ndpi, function (a) {
-		  console.log('GC',a);
-		});
-	}, 1000);
-});
 
