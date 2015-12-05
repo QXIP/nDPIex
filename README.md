@@ -7,7 +7,7 @@ The first step is download and compile the nDPI library:
 cd ndpiex
 git clone https://github.com/ntop/nDPI
 cd nDPI
-./configure –with-pic
+./configure -with-pic
 make
 cd ..
 ```
