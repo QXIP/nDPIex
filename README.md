@@ -1,8 +1,14 @@
 # nDPIex
-nDPI example
+nDPI example collection
+
+| Version        | Status      | 
+| ------------- |:------------:| 
+| 0.1    | experimental | 
+
+
 
 # Installation
-The first step is download and compile the nDPI library:
+Compile latest nDPI from github:
 ```bash
 cd ndpiex
 git clone https://github.com/ntop/nDPI
@@ -29,4 +35,9 @@ make lib
 ### Lua FFI example
 ```bash
 cd lua; ./run_lua
+```
+
+### Node FFI example
+```bash
+cd nodejs; npm install && npm start
 ```
