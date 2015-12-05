@@ -1,4 +1,4 @@
-# ndpiex
+# nDPIex
 nDPI example
 
 # Installation
@@ -11,10 +11,22 @@ cd nDPI
 make
 cd ..
 ```
-The second and last step is to compile ndpiex:
+Compile stand-alone ndpiex:
 ```bash
 make
 ```
 
-# Usage
+Compile binding ndpiexlib:
+```bash
+make lib
+```
+
+## Usage
+```bash
 ./ndpiex -f file.pcap
+```
+
+### Lua FFI example
+```bash
+cd lua; ./run_lua
+```
