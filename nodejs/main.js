@@ -11,9 +11,6 @@ var ref = require("ref");
 var Struct = require('ref-struct');
 var ArrayType = require('ref-array');
 
-// GC workaround, temporary
-var finalize = require('finalize');
-
 /* PCAP Parser */
 
 var pcapp = require('pcap-parser');
@@ -107,12 +104,17 @@ counter = 0;
 	});
 
 
+	function ndpiPipe(h,p){
+		ndpi.addProtocolHandler(onProto);
+	    	ndpi.processPacket(h, p );
+
+	}
+
 pcap_parser.on('packet', function (raw_packet) {
 	counter++;
 	var onProto = function(id, packet) {
 		if (id > 0) { console.log("Proto: "+L7PROTO[id]+" ("+id+")") }
 	}
-	ndpi.addProtocolHandler(onProto);
 	var header = raw_packet.header;
 	// Build PCAP Hdr Struct
 	var newHdr = new pcap_pkthdr();
@@ -121,7 +123,7 @@ pcap_parser.on('packet', function (raw_packet) {
 		newHdr.incl_len=header.capturedLength;
 		newHdr.orig_len=header.originalLength;
 
-    	ndpi.processPacket(newHdr.ref(), raw_packet.data );
+    	ndpiPipe(newHdr.ref(), raw_packet.data );
 
 });
 
@@ -133,11 +135,6 @@ var exit = false;
 
 process.on('exit', function() {
 		exports.callback;
-		// GC workaround, temporary
-		finalize(ndpi, function () { console.log('GC!',this.x) });
-		finalize(callback, function () { console.log('GC!',this.x) });
-		finalize(pcapp, function () { console.log('GC!',this.x) });
-		finalize(onProto, function () { console.log('GC!',this.x) });
 		console.log('Total Packets: '+counter);
 });
 

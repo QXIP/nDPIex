@@ -155,6 +155,33 @@ function getIndex(){
 	return "ndpibeat-"+new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10).replace(/-/g, '.');
 }
 
+function onProto(id, packet) {
+	    if (id > 0) {
+		// console.log("Proto: "+id+" "+L7PROTO[id]);
+		var doc = {
+		  index: getIndex(),
+		  type: 'ndpi',
+		  body: {
+		      ts: (new Date()).toISOString(),
+		      proto_name: L7PROTO[id],
+		      proto_id: id
+		  }
+		};
+	
+		Queue.push(doc, function(err, resp) {
+		  if (err) {
+		    return console.log(err);
+		  }
+		  // return console.log(resp);
+		});
+	    }
+}
+
+
+function ndpiPipe(h,p){
+			ndpi.addProtocolHandler(onProto);
+			ndpi.processPacket(h, p );
+}
 console.log("Listening on " + pcap_session.device_name);
 
 	/* gc hook */
@@ -165,34 +192,19 @@ console.log("Listening on " + pcap_session.device_name);
 	pcap_session.on('packet', function (raw_packet) {
 	        if (raw_packet.header) {
 			counter++;
-			function onProto(id, packet) {
-			    if (id > 0) {
-				// console.log("Proto: "+id+" "+L7PROTO[id]);
-				var doc = {
-				  index: getIndex(),
-				  type: 'ndpi',
-				  body: {
-				      ts: (new Date()).toISOString(),
-				      proto_name: L7PROTO[id],
-				      proto_id: id
-				  }
-				};
-			
-				Queue.push(doc, function(err, resp) {
-				  if (err) {
-				    return console.log(err);
-				  }
-				  // return console.log(resp);
-				});
-			    }
-			}
 
-			ndpi.addProtocolHandler(onProto);
-			ndpi.processPacket(raw_packet.header.ref(), raw_packet.buf );
+		//	ndpi.addProtocolHandler(onProto);
+		//	ndpi.processPacket(raw_packet.header.ref(), raw_packet.buf );
+			ndpiPipe(raw_packet.header.ref(), raw_packet.buf );
 	        }
 	});
 
 var exit = false;
+
+process.on('exit', function() {
+                exports.callback; onProto;
+                console.log('Total Packets: '+counter);
+});
 
 process.on('SIGINT', function() {
     console.log();

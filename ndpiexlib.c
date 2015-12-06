@@ -85,13 +85,13 @@
 #endif
 
 typedef void (*callback)(int, const uint8_t *packet);
+typedef void (*databack)(int, int, int, int, int, char );
 
 void init();
 void setDatalinkType(pcap_t *handle);
 void processPacket(const struct pcap_pkthdr *header, const uint8_t *packet);
 void finish();
 void addProtocolHandler(callback handler);
-
 
 
 // pcap
@@ -525,6 +525,48 @@ static void printResults(void)
     printf("\n\n");
 }
 
+static void dumpResults(void)
+{
+    u_int32_t i;
+
+    printf("\x1b[2K\n");
+    printf("pcap file contains\n");
+    printf("\tip packets:   \x1b[33m%-13"PRIu64"\x1b[0m of %"PRIu64" packets total\n", ip_packet_count, raw_packet_count);
+    printf("\tip bytes:     \x1b[34m%-13"PRIu64"\x1b[0m\n", total_bytes);
+    printf("\tunique ids:   \x1b[35m%-13u\x1b[0m\n", osdpi_id_count);
+    printf("\tunique flows: \x1b[36m%-13u\x1b[0m\n", osdpi_flow_count);
+
+    printf("\n\ndetected protocols:\n");
+    for (i = 0; i <= NDPI_MAX_SUPPORTED_PROTOCOLS; i++) {
+        u_int32_t protocol_flows = 0;
+        u_int32_t j;
+
+        // count flows for that protocol
+        for (j = 0; j < osdpi_flow_count; j++) {
+            if (osdpi_flows[j].detected_protocol.protocol == i) {
+                protocol_flows++;
+            }
+        }
+
+        if (protocol_counter[i] > 0) {
+            printf("\t\x1b[31m%-20s\x1b[0m packets: \x1b[33m%-13"PRIu64"\x1b[0m bytes: \x1b[34m%-13"PRIu64"\x1b[0m "
+                   "flows: \x1b[36m%-13u\x1b[0m\n",
+                   prot_long_str[i], protocol_counter[i], protocol_counter_bytes[i], protocol_flows);
+        }
+	protocol_counter[i] = 0;
+	protocol_counter_bytes[i] = 0;
+
+    }
+    printf("\n\n");
+
+	raw_packet_count = 0;
+	ip_packet_count = 0;
+	total_bytes = 0;
+	size_flow_struct = 0;
+	osdpi_flow_count = 0;
+
+}
+
 
 // executed for each packet in the pcap file
 static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header, const u_char * packet)
@@ -599,7 +641,7 @@ void init() {
 }
 
 void getResults() {
-    printResults();
+    dumpResults();
 }
 
 void setDatalinkType(pcap_t *handle) {
