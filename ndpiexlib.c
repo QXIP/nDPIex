@@ -36,6 +36,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 */
+
 #include <linux/if_ether.h>
 
 #include <pcap.h>
@@ -505,13 +506,6 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
     ip_packet_count++;
     total_bytes += rawsize;
 
-#ifndef NDPI_ENABLE_DEBUG_MESSAGES
-    if (ip_packet_count % 499 == 0) {
-        printf("\rip packets scanned: \x1b[33m%-10"PRIu64"\x1b[0m ip bytes scanned: \x1b[34m%-10"PRIu64"\x1b[0m",
-               ip_packet_count, total_bytes);
-    }
-#endif
-    
     // only handle unfragmented packets
     if ((iph->frag_off & htons(0x1FFF)) == 0) {
         
@@ -521,8 +515,8 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
     else {
         static u_int8_t frag_warning_used = 0;
         if (frag_warning_used == 0) {
-            printf("\n\nWARNING: fragmented ip packets are not supported and will be skipped \n\n");
-            sleep(2);
+          //  printf("\n\nWARNING: fragmented ip packets are not supported and will be skipped \n\n");
+          //  sleep(2);
             frag_warning_used = 1;
         }
         return 0;
@@ -662,6 +656,10 @@ void init() {
     gettimeofday(&begin, NULL);
 }
 
+void getResults() {
+    printResults();
+}
+
 void setDatalinkType(pcap_t *handle) {
     _pcap_datalink_type = pcap_datalink(handle);
 
@@ -672,6 +670,7 @@ void processPacket(const struct pcap_pkthdr *header, const u_char *packet) {
 }
 
 void finish() {
+    printResults();
     gettimeofday(&end, NULL);
     tot_usec = end.tv_sec*1000000 + end.tv_usec - (begin.tv_sec*1000000 + begin.tv_usec);
     terminateDetection();

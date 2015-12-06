@@ -1,0 +1,20 @@
+{
+  "name": "ndpi-nodebeat",
+  "description": "nDPI NodeBeat for Elasticsearch",
+  "author": "lmangani",
+  "dependencies": {
+    "ffi": "*",
+    "ref": "*",
+    "ref-array": "*",
+    "ref-struct": "*",
+    "pcap-parser": "*",
+    "elastic-queue": "*",
+    "weak": "*"
+  },
+  "config": {
+    "unsafe-perm":true
+  },
+  "scripts": {
+    "start": "node nodebeat.js"
+  }
+}
