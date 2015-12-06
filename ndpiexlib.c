@@ -614,7 +614,7 @@ static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header
     type = ethernet->h_proto;
 
     // just work on Ethernet packets that contain IP
-    if (_pcap_datalink_type == DLT_EN10MB && type == htons(ETH_P_IP)
+    if (type == htons(ETH_P_IP)
         && header->caplen >= sizeof(struct ethhdr)) {
 
         if (header->caplen < header->len) {
