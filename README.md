@@ -22,7 +22,7 @@ Compile stand-alone ndpiex:
 make
 ```
 
-Compile binding ndpiexlib:
+Compile FFI binding ndpiexlib:
 ```bash
 make lib
 ```
