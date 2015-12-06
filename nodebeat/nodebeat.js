@@ -202,7 +202,7 @@ console.log("Listening on " + pcap_session.device_name);
 var exit = false;
 
 process.on('exit', function() {
-                exports.callback; onProto;
+                callback; onProto; ndpiPipe;
                 console.log('Total Packets: '+counter);
 });
 
