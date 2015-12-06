@@ -25,7 +25,7 @@ console.log("CTRL-C to exit!");
 	var ElasticQueue = require('elastic-queue');
 	
 	Queue = new ElasticQueue({
-		elasticsearch: { client: { host: "de1.qxip.net:9200" } },
+		elasticsearch: { client: { host: "127.0.0.1:9200" } },
 		batchSize: 50,
 		commitTimeout: 1000,
 		rateLimit: 1000
