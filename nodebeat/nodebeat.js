@@ -6,6 +6,9 @@ var VERSION = "0.1";
 console.log("nDPI NodeBeat v"+VERSION);
 console.log("CTRL-C to exit!");
 
+var elastic = process.argv[2];
+if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0);}
+
 /* NODE REQs */ 
 
 	var ref = require('ref');
@@ -25,7 +28,7 @@ console.log("CTRL-C to exit!");
 	var ElasticQueue = require('elastic-queue');
 	
 	Queue = new ElasticQueue({
-		elasticsearch: { client: { host: "127.0.0.1:9200" } },
+		elasticsearch: { client: { host: elastic } },
 		batchSize: 50,
 		commitTimeout: 1000,
 		rateLimit: 1000

@@ -93,8 +93,6 @@ void finish();
 void addProtocolHandler(callback handler);
 
 
-// cli options
-static char *_pcap_file = NULL;
 
 // pcap
 static char _pcap_error_buffer[PCAP_ERRBUF_SIZE];
@@ -236,45 +234,6 @@ static int string_to_detection_bitmask(char *str, NDPI_PROTOCOL_BITMASK * dbm)
     return 0;
 }
 #endif
-
-static void parseOptions(int argc, char **argv)
-{
-    int opt;
-    
-#ifdef NDPI_ENABLE_DEBUG_MESSAGES
-    NDPI_BITMASK_SET_ALL(debug_messages_bitmask);
-#endif
-    
-    while ((opt = getopt(argc, argv, "f:e:")) != EOF) {
-        switch (opt) {
-        case 'f':
-            _pcap_file = optarg;
-            break;
-        case 'e':
-#ifdef NDPI_ENABLE_DEBUG_MESSAGES
-            // set debug logging bitmask to all protocols
-            if (string_to_detection_bitmask(optarg, &debug_messages_bitmask) != 0) {
-                printf("ERROR option -e needs a valid list of protocols");
-                exit(-1);
-            }
-            
-            printf("debug messages Bitmask is: " NDPI_BITMASK_DEBUG_OUTPUT_BITMASK_STRING "\n",
-                   NDPI_BITMASK_DEBUG_OUTPUT_BITMASK_VALUE(debug_messages_bitmask));
-            
-#else
-            printf("ERROR: option -e : DEBUG MESSAGES DEACTIVATED\n");
-            exit(-1);
-#endif
-            break;
-        }
-    }
-    
-    // check parameters
-    if (_pcap_file == NULL || strcmp(_pcap_file, "") == 0) {
-        printf("ERROR: no pcap file path provided; use option -f with the path to a valid pcap file\n");
-        exit(-1);
-    }
-}
 
 static void debug_printf(u_int32_t protocol, void *id_struct, ndpi_log_level_t log_level, const char *format, ...)
 {
@@ -566,23 +525,6 @@ static void printResults(void)
     printf("\n\n");
 }
 
-static void openPcapFile(void)
-{
-    _pcap_handle = pcap_open_offline(_pcap_file, _pcap_error_buffer);
-
-    if (_pcap_handle == NULL) {
-        printf("ERROR: could not open pcap file: %s\n", _pcap_error_buffer);
-        exit(-1);
-    }
-    _pcap_datalink_type = pcap_datalink(_pcap_handle);
-}
-
-static void closePcapFile(void)
-{
-    if (_pcap_handle != NULL) {
-        pcap_close(_pcap_handle);
-    }
-}
 
 // executed for each packet in the pcap file
 static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header, const u_char * packet)
@@ -670,7 +612,6 @@ void processPacket(const struct pcap_pkthdr *header, const u_char *packet) {
 }
 
 void finish() {
-    printResults();
     gettimeofday(&end, NULL);
     tot_usec = end.tv_sec*1000000 + end.tv_usec - (begin.tv_sec*1000000 + begin.tv_usec);
     terminateDetection();
