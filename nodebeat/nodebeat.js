@@ -5,6 +5,7 @@
 var VERSION = "0.1";
 console.log("nDPI NodeBeat v"+VERSION);
 console.log("CTRL-C to exit!");
+var counts = { task: 0, batch: 0, drain: 0, pkts: 0 };
 
 var elastic = process.argv[2];
 if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0);}
@@ -14,17 +15,13 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	var ref = require('ref');
 	var ffi = require('ffi');
 	var Struct = require('ref-struct');
-	var ArrayType = require('ref-array');
+//	var ArrayType = require('ref-array');
+	var pcap = require("pcap");
+	var pcap_session = pcap.createSession("", "");
 	
-	var weak = require('weak');
-	
-	var pcap = require("pcap"),
-	    pcap_session = pcap.createSession("", "");
-
 /* Elastic Queue */
 
 	var ElasticQueue, Queue;
-	
 	var ElasticQueue = require('elastic-queue');
 	
 	Queue = new ElasticQueue({
@@ -34,50 +31,27 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 		rateLimit: 1000
 	});
 	
-	/*
 	Queue.on('task', function(batch) {
-	  return console.log("task");
+		counts.task++;
+		return;
 	});
 	
 	Queue.on('batchComplete', function(resp) {
-	  return console.log("batch complete");
+		counts.batch++;
+		return;
+	        // return console.log("batch complete");
 	});
 	
 	Queue.on('drain', function() {
-	  console.log("\n\nQueue is Empty\n\n");
-	  // Queue.close();
-	  // return process.exit();
+		counts.drain++;
+		return;
+	  	// console.log("\n\nQueue is Empty\n\n");
+	  	// Queue.close();
+	  	// return process.exit();
 	});
-	*/
 	
 
 /* NDPI CALLBACK */
-
-	// On Windows UTF-16 (2-bytes), Unix UTF-32 (4-bytes)
-	var wchar_size = process.platform == 'win32' ? 2 : 4
-	
-	var wchar_t = Object.create(ref.types.CString);
-	wchar_t.get = function get (buf, offset) {
-	  var _buf = buf.readPointer(offset)
-	  if (_buf.isNull()) {
-	    return;
-	  }
-	  var stringBuf = _buf.reinterpretUntilZeros(wchar_size)
-	  return stringBuf.toString('win32' ? 'utf16le' : 'utf32li') // TODO: decode UTF-32 on Unix
-	};
-	
-	wchar_t.set = function set (buf, offset, val) {
-	  // TODO: better UTF-16 and UTF-32 encoding
-	  var _buf = new Buffer((val.length + 1) * wchar_size)
-	  _buf.fill(0)
-	  var l = 0
-	  for (var i = wchar_size - 1; i < _buf.length; i += wchar_size) {
-	    _buf[i] = val.charCodeAt(l++)
-	  }
-	  return buf.writePointer(_buf, offset)
-	};
-	
-	var callback_Ptr = ArrayType(wchar_t);
 
 
 	/* APP VARS */
@@ -91,13 +65,14 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	var uint8_t = exports.uint8_t = voidPtr;
 	var uint8_tPtr = exports.uint8_tPtr = ref.refType(uint8_t);
 	
-	var callback = ffi.Function(ref.types.void, [
+	// var callbackPtr = ffi.Callback(ref.types.void, [ ref.types.int32, ref.refType(ref.types.uchar) ], onProto);
+	// var callbackF = ffi.ForeignFunction(callbackPtr, ref.types.void, [ ref.types.int32, ref.refType(ref.types.uchar) ]);
+
+	var callback = exports.callback = ffi.Function(ref.types.void, [
 	  ref.types.int32,
 	  ref.refType(ref.types.uchar),
 	]);
-	
-	var callbackPtr = ref.refType(callback);
-	
+		
 	var pcap_t = exports.pcap_t = voidPtr;
 	var pcap_tPtr = exports.pcap_tPtr = ref.refType(pcap_t);
 	var pcap_handler = exports.pcap_handler = ffi.Function(ref.types.void, [
@@ -108,14 +83,14 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	var pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(pcap_handler);
 	
 	// PCAP Header
-	var pcap_pkthdr = Struct({
+	var pcap_pkthdr = exports.pcap_pkthdr = Struct({
 	  'ts_sec': 'long', 
 	  'ts_usec': 'long',
 	  'incl_len': 'int',
 	  'orig_len': 'int'
 	});
 	
-	var pktHdr = new pcap_pkthdr;
+	var pktHdr = exports.pktHdr = new pcap_pkthdr;
 	pktHdr = ref.refType(ref.types.void);
 
 	/* NDPI Hook */
@@ -143,19 +118,14 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	]
 
 
-/* APP */
+	/* PCAP LOOP */
 
-var init = ndpi.init();
-var counter = 0;
+	var getIndex = exports.getIndex = function(){
+		var now = new Date();
+		return "ndpibeat-"+new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10).replace(/-/g, '.');
+	}
 
-/* PCAP LOOP */
-
-function getIndex(){
-	var now = new Date();
-	return "ndpibeat-"+new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10).replace(/-/g, '.');
-}
-
-function onProto(id, packet) {
+	var onProto = exports.onProto = function(id, packet) {
 	    if (id > 0) {
 		// console.log("Proto: "+id+" "+L7PROTO[id]);
 		var doc = {
@@ -175,40 +145,39 @@ function onProto(id, packet) {
 		  // return console.log(resp);
 		});
 	    }
-}
+	}
 
+	/* APP */
 
-function ndpiPipe(h,p){
+	var init = ndpi.init();
+
+	console.log("Listening on " + pcap_session.device_name);
+
+	var ndpiPipe = exports.ndpiPipe = function(h,p){
 			ndpi.addProtocolHandler(onProto);
 			ndpi.processPacket(h, p );
-}
-console.log("Listening on " + pcap_session.device_name);
-
-	/* gc hook */
-	var ndpiw = weak(ndpi, function () {
-	  console.log('ndpi has been garbage collected!')
-	})
+	}
 
 	pcap_session.on('packet', function (raw_packet) {
 	        if (raw_packet.header) {
-			counter++;
-
-		//	ndpi.addProtocolHandler(onProto);
-		//	ndpi.processPacket(raw_packet.header.ref(), raw_packet.buf );
+			counts.pkts++;
 			ndpiPipe(raw_packet.header.ref(), raw_packet.buf );
-	        }
+	        } return;
 	});
 
-var exit = false;
+	var exit = false;
 
-process.on('exit', function() {
-                callback; onProto; ndpiPipe;
-                console.log('Total Packets: '+counter);
-});
+	process.on('exit', function() {
+                callback; onProto; ndpiPipe;pcap_session;pcap;
+                console.log('Total Packets: '+counts.pkts);
+	});
+
+/* Exit */
 
 process.on('SIGINT', function() {
     console.log();
-    console.log('Packets Captured:'+counter);
+    console.log('Stats:',counts);
+    console.log('Packets Captured:'+counts.pkts);
     if (exit) {
     	console.log("Exiting...");
 	ndpi.finish();
