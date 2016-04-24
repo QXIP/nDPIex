@@ -2,7 +2,7 @@
   "name": "ndpi-nodebeat",
   "description": "nDPI NodeBeat for Elasticsearch",
   "author": "lmangani@gmailcom",
-  "version": 0.0.1,
+  "version": "0.0.1",
   "dependencies": {
     "ffi": "*",
     "ref": "*",
