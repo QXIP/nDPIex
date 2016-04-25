@@ -2,13 +2,25 @@
 /*  (c) 2015 QXIP BV 		*/
 /*  http://qxip.net 		*/
 
-var VERSION = "0.1";
+var VERSION = "0.2";
 console.log("nDPI NodeBeat v"+VERSION);
 console.log("CTRL-C to exit!");
 var counts = { task: 0, batch: 0, drain: 0, pkts: 0 };
+var debug = false;
 
-var elastic = process.argv[2];
-if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0);}
+if(process.argv.indexOf("-d") != -1){
+    debug = true;
+}
+
+if(process.argv.indexOf("-s") != -1){
+    var elastic = process.argv[process.argv.indexOf("-s") + 1]; 
+}
+
+if (!elastic) { console.log('missing argument! -s <elasticsearch:port>');process.exit(0);}
+
+// Create Client Config
+var client = { host: elastic };
+if (debug) client.log = 'trace';
 
 /* NODE REQs */ 
 
@@ -25,7 +37,7 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	var ElasticQueue = require('elastic-queue');
 	
 	Queue = new ElasticQueue({
-		elasticsearch: { client: { host: elastic } },
+		elasticsearch: { client: client },
 		batchSize: 50,
 		commitTimeout: 1000,
 		rateLimit: 1000
@@ -39,7 +51,6 @@ if (!elastic) { console.log('missing argument! <elasticsearch>');process.exit(0)
 	Queue.on('batchComplete', function(resp) {
 		counts.batch++;
 		return;
-	        // return console.log("batch complete");
 	});
 	
 	Queue.on('drain', function() {
