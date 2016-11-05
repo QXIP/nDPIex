@@ -4,14 +4,16 @@
   "author": "lmangani",
   "dependencies": {
     "ffi": "*",
+    "node-cache": "^3.2.1",
+    "pcap": "git+https://github.com/mranney/node_pcap.git",
+    "pcap-parser": "*",
     "ref": "*",
     "ref-array": "*",
     "ref-struct": "*",
-    "pcap-parser": "*"
-
+    "websocket": "^1.0.23"
   },
   "config": {
-    "unsafe-perm":true
+    "unsafe-perm": true
   },
   "scripts": {
     "start": "node main.js ../pcap/lamernews.pcap"

@@ -1,3 +1,4 @@
+"use strict"
 /*  nDPI Node.js Binding PoC 	*/
 /*  (c) 2015 QXIP BV 		*/
 /*  http://qxip.net 		*/
@@ -10,11 +11,32 @@ var ref = require('ref');
 var ffi = require('ffi');
 var Struct = require('ref-struct');
 var ArrayType = require('ref-array');
-
+var fs = require('fs');
 var pcap = require("pcap"),
     pcap_session = pcap.createSession("", "");
 
+//var CONF = JSON.parse(fs.readFileSync("./config.json","r+"));
+var CONF = {};
 
+var BaseClient = require('./client').BaseClient;
+
+class MyClient extends BaseClient{
+    handleStringMessage(msg){
+        try{
+            var message = JSON.parse(msg);
+            //TODO:do some message
+        }catch (e){
+            console.log(e.toString());
+        }
+    }
+}
+
+
+//var client = new MyClient(CONF['serverAddr']);
+var client = null;
+var IPv4 = require('pcap/decode/ipv4');
+var TCP = require('pcap/decode/tcp');
+var UDP = require('pcap/decode/udp');
 /* NDPI CALLBACK */
 
 // On Windows UTF-16 (2-bytes), Unix UTF-32 (4-bytes)
@@ -115,24 +137,71 @@ function onProto(id, packet) {
 	if (id > 0) console.log("Proto: "+id+" "+L7PROTO[id]);
 }
 
-function ndpiPipe(h,p){
-		ndpi.addProtocolHandler(onProto);
-		ndpi.processPacket(h, p);
+function handleFlowInfo(flow_info){
+	console.log(flow_info);
 }
 
-pcap_session.on('packet', function (raw_packet) {
+
+function getFlowInfo(packet,l7_protocol){
+	if(packet.payload.payload instanceof IPv4){
+		var ip = packet.payload.payload;
+		var saddr = ip.saddr;
+		var daddr = ip.daddr;
+		var sport = null;
+	    var dport = null;	
+		var tsl_packet = packet.payload.payload.payload;
+		var tsl_protocol = '';
+		if(tsl_packet instanceof TCP){
+			tsl_protocol = 'tcp';
+			sport = tsl_packet.sport;
+			dport = tsl_packet.dport;	
+		}else if (tsl_packet instanceof UDP){
+			tsl_protocol = 'udp';
+			sport = tsl_packet.sport;
+			dport = tsl_packet.dport;
+		}else{
+			tsl_protocol = 'unknown';
+			sport = tsl_packet.sport;
+			dport = tsl_packet.dport;
+		}
+		return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
+	
+	}
+}
+
+
+function onPacketAnalyzedCallback(flow_info){
+  console.log("flow from "+flow_info.saddr+":"+flow_info.sport+" to "+flow_info.daddr+":"+flow_info.dport+" with protocol : "+flow_info.l7_protocol);
+}
+
+function ndpiPipe(h,p,callback){
+	(function(header,packet){
+		ndpi.addProtocolHandler(function(id,p){
+			if(id > 0){
+				var protocol = L7PROTO[id];
+				var pkt = pcap.decode.packet(packet); 
+				var flow_info = getFlowInfo(pkt,protocol);	
+				callback(flow_info);
+			}
+		});
+		ndpi.processPacket(header, packet.buf);
+	})(h,p);
+}
+
+    pcap_session.on('packet', function (raw_packet) {
         if (raw_packet.header) {
-		counter++;
-		ndpiPipe(raw_packet.header.ref(), raw_packet.buf );
+            counter++;
+            ndpiPipe(raw_packet.header.ref(), raw_packet, onPacketAnalyzedCallback );
         }
-});
+    });
+
 
 
 var exit = false;
 
 process.on('exit', function() {
-                exports.callback; onProto;
-                console.log('Total Packets: '+counter);
+    exports.callback; onProto;
+    console.log('Total Packets: '+counter);
 });
 
 process.on('SIGINT', function() {
@@ -150,3 +219,5 @@ process.on('SIGINT', function() {
 	}, 2000)
     }
 });
+
+
