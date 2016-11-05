@@ -5,8 +5,7 @@ if [ ! -d "nDPI" ]; then
 fi
 cd nDPI
 git pull
-./autogen.sh
-./configure -with-pic
+./autogen.sh && ./configure -with-pic
 make && make install
 cd ..
 make
