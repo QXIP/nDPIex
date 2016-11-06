@@ -85,12 +85,12 @@ runner.callback = exports.callback = ffi.Function(ref.types.void, [
 
 var pcap_t = exports.pcap_t = voidPtr;
 var pcap_tPtr = exports.pcap_tPtr = ref.refType(pcap_t);
-var pcap_handler = exports.pcap_handler = ffi.Function(ref.types.void, [
+runner.pcap_handler = exports.pcap_handler = ffi.Function(ref.types.void, [
   ref.refType(ref.types.uchar),
   voidPtr,
   ref.refType(ref.types.uchar)
 ]);
-var pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(pcap_handler);
+runner.pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(runner.pcap_handler);
 
 // PCAP Header
 var pcap_pkthdr = Struct({
@@ -112,7 +112,7 @@ var gcallback = ffi.Callback('void', [ref.types.int32, ref.refType(ref.types.uch
   });
 */
 
-var ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
+runner.ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
   init: [ref.types.void, [
   ]],
   setDatalinkType: [ref.types.void, [
@@ -139,22 +139,24 @@ var L7PROTO = [
 console.log("nDPI Node v"+VERSION);
 
 var counter = 0;
-var init = ndpi.init();
+var init = runner.ndpi.init();
+
+var reboot = function(){
+	runner.ndpi.finish();
+	runner.ndpi.init();
+	console.log('nDPI restarted!');
+}
 
 /* PCAP LOOP */
 
 console.log("Listening on " + pcap_session.device_name);
 
-var onProto = function(id, packet) {
+runner.onProto = function(id, packet) {
 	if (id > 0) console.log("Proto: "+id+" "+L7PROTO[id]);
 }
 
-var handleFlowInfo = function(flow_info){
-	console.log(flow_info);
-}
 
-
-var getFlowInfo = function(packet,l7_protocol){
+runner.getFlowInfo = function(packet,l7_protocol){
 	if(packet.payload.payload instanceof IPv4){
 		var ip = packet.payload.payload;
 		var saddr = ip.saddr;
@@ -167,44 +169,44 @@ var getFlowInfo = function(packet,l7_protocol){
 			tsl_protocol = 'tcp';
 			sport = tsl_packet.sport;
 			dport = tsl_packet.dport;
-			return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
 		}else if (tsl_packet instanceof UDP){
 			tsl_protocol = 'udp';
 			sport = tsl_packet.sport;
 			dport = tsl_packet.dport;
-			return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
 		}else{
 			tsl_protocol = 'unknown';
 			sport = tsl_packet.sport;
 			dport = tsl_packet.dport;
 			console.log('skip!');
 		}
+		return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
 	}
 }
 
 
-var onPacketAnalyzedCallback = function(flow_info){
+runner.onPacketAnalyzedCallback = function(flow_info){
   console.log("flow from "+flow_info.saddr+":"+flow_info.sport+" to "+flow_info.daddr+":"+flow_info.dport+" with protocol : "+flow_info.l7_protocol);
 }
 
-var ndpiPipe = function(h,p,callback){
+runner.ndpiPipe = function(h,p,callback){
 	(function(header,packet){
-		ndpi.addProtocolHandler(function(id,p){
+		runner.ndpi.addProtocolHandler(function(id,p){
 			if(id > 0){
 				var protocol = L7PROTO[id];
 				var pkt = pcap.decode.packet(packet);
-				var flow_info = getFlowInfo(pkt,protocol);
+				var flow_info = runner.getFlowInfo(pkt,protocol);
 				callback(flow_info);
 			} else { return; }
 		});
-		ndpi.processPacket(header, packet.buf);
+		runner.ndpi.processPacket(header, packet.buf);
 	})(h,p);
 }
 
     pcap_session.on('packet', function (raw_packet) {
         if (raw_packet.header) {
             counter++;
-            ndpiPipe(raw_packet.header.ref(), raw_packet, onPacketAnalyzedCallback );
+            runner.ndpiPipe(raw_packet.header.ref(), raw_packet, runner.onPacketAnalyzedCallback );
+	    if (counter % 5000 === 0 ) { reboot(); }
         }
     });
 
@@ -212,16 +214,16 @@ var ndpiPipe = function(h,p,callback){
 
 var exit = false;
 
-process.on('exit', function(e) {
-    console.log('Total Packets: '+counter,e);
-    runner.callback_Ptr; runner; onProto; ndpi;
+process.on('exit', function() {
+    console.log('Total Packets: '+counter);
+    var gc = runner;
 });
 
 process.on('SIGINT', function() {
     console.log();
     if (exit) {
     	console.log("Exiting...");
-	ndpi.finish();
+	runner.ndpi.finish();
         process.exit();
     } else {
     	console.log("Press CTRL-C within 2 seconds to Exit...");
