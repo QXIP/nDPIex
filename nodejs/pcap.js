@@ -37,33 +37,35 @@ var client = null;
 var IPv4 = require('pcap/decode/ipv4');
 var TCP = require('pcap/decode/tcp');
 var UDP = require('pcap/decode/udp');
+var runner = {};
+
 /* NDPI CALLBACK */
 
 // On Windows UTF-16 (2-bytes), Unix UTF-32 (4-bytes)
-var wchar_size = process.platform == 'win32' ? 2 : 4
+runner.wchar_size = process.platform == 'win32' ? 2 : 4
 
-var wchar_t = Object.create(ref.types.CString);
-wchar_t.get = function get (buf, offset) {
+runner.wchar_t = Object.create(ref.types.CString);
+runner.wchar_t.get = function get (buf, offset) {
   var _buf = buf.readPointer(offset)
   if (_buf.isNull()) {
     return;
   }
-  var stringBuf = _buf.reinterpretUntilZeros(wchar_size)
+  var stringBuf = _buf.reinterpretUntilZeros(runner.wchar_size)
   return stringBuf.toString('win32' ? 'utf16le' : 'utf32li') // TODO: decode UTF-32 on Unix
 };
 
-wchar_t.set = function set (buf, offset, val) {
+runner.wchar_t.set = function set (buf, offset, val) {
   // TODO: better UTF-16 and UTF-32 encoding
-  var _buf = new Buffer((val.length + 1) * wchar_size)
+  var _buf = new Buffer((val.length + 1) * runner.wchar_size)
   _buf.fill(0)
   var l = 0
-  for (var i = wchar_size - 1; i < _buf.length; i += wchar_size) {
+  for (var i = runner.wchar_size - 1; i < _buf.length; i += runner.wchar_size) {
     _buf[i] = val.charCodeAt(l++)
   }
   return buf.writePointer(_buf, offset)
 };
 
-var callback_Ptr = ArrayType(wchar_t);
+runner.callback_Ptr = ArrayType(runner.wchar_t);
 
 /* APP VARS */
 
@@ -76,9 +78,9 @@ var u_charPtr = exports.u_charPtr = ref.refType(u_char);
 var uint8_t = exports.uint8_t = voidPtr;
 var uint8_tPtr = exports.uint8_tPtr = ref.refType(uint8_t);
 
-var callback = exports.callback = ffi.Function(ref.types.void, [
+runner.callback = exports.callback = ffi.Function(ref.types.void, [
   ref.types.int32,
-  ref.refType(ref.types.uchar),
+  ref.refType(ref.types.uchar)
 ]);
 
 var pcap_t = exports.pcap_t = voidPtr;
@@ -86,13 +88,13 @@ var pcap_tPtr = exports.pcap_tPtr = ref.refType(pcap_t);
 var pcap_handler = exports.pcap_handler = ffi.Function(ref.types.void, [
   ref.refType(ref.types.uchar),
   voidPtr,
-  ref.refType(ref.types.uchar),
+  ref.refType(ref.types.uchar)
 ]);
 var pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(pcap_handler);
 
 // PCAP Header
 var pcap_pkthdr = Struct({
-  'ts_sec': 'long', 
+  'ts_sec': 'long',
   'ts_usec': 'long',
   'incl_len': 'int',
   'orig_len': 'int'
@@ -100,6 +102,15 @@ var pcap_pkthdr = Struct({
 
 var pktHdr = new pcap_pkthdr;
 pktHdr = ref.refType(ref.types.void);
+
+
+/*
+var gcallback = ffi.Callback('void', [ref.types.int32, ref.refType(ref.types.uchar)],
+  function(id, name) {
+    console.log("id: ", id);
+    console.log("proto: ", name);
+  });
+*/
 
 var ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
   init: [ref.types.void, [
@@ -114,9 +125,10 @@ var ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
   finish: [ref.types.void, [
   ]],
   addProtocolHandler: [ref.types.void, [
-    callback
+    runner.callback
   ]],
 });
+
 
 var L7PROTO = [
 "Unknown","FTP_CONTROL","POP3","SMTP","IMAP","DNS","IPP","HTTP","MDNS","NTP","NetBIOS","NFS","SSDP","BGP","SNMP","XDMCP","SMB","Syslog","DHCP","PostgreSQL","MySQL","TDS","Direct_Download_Link","POPS","AppleJuice","DirectConnect","Socrates","WinMX","VMware","SMTPS","Filetopia","iMESH","Kontiki","OpenFT","FastTrack","Gnutella","eDonkey","BitTorrent","EPP","AVI","Flash","OggVorbis","MPEG","QuickTime","RealMedia","WindowsMedia","MMS","Xbox","QQ","Move","RTSP","IMAPS","IceCast","PPLive","PPStream","Zattoo","ShoutCast","Sopcast","Tvants","TVUplayer","HTTP_APPLICATION_VEOHTV","QQLive","Thunder","Soulseek","SSL_No_Cert","IRC","Ayiya","Unencryped_Jabber","MSN","Oscar","Yahoo","BattleField","Quake","VRRP","Steam","HalfLife2","WorldOfWarcraft","Telnet","STUN","IPsec","GRE","ICMP","IGMP","EGP","SCTP","OSPF","IP_in_IP","RTP","RDP","VNC","PcAnywhere","SSL","SSH","Usenet","MGCP","IAX","TFTP","AFP","Stealthnet","Aimini","SIP","TruPhone","ICMPV6","DHCPV6","Armagetron","Crossfire","Dofus","Fiesta","Florensia","Guildwars","HTTP_Application_ActiveSync","Kerberos","LDAP","MapleStory","MsSQL","PPTP","Warcraft3","WorldOfKungFu","Meebo","Facebook","Twitter","DropBox","GMail","GoogleMaps","YouTube","Skype","Google","DCE_RPC","NetFlow","sFlow","HTTP_Connect","HTTP_Proxy","Citrix","NetFlix","LastFM","GrooveShark","SkyFile_PrePaid","SkyFile_Rudics","SkyFile_PostPaid","Citrix_Online","Apple","Webex","WhatsApp","AppleiCloud","Viber","AppleiTunes","Radius","WindowsUpdate","TeamViewer","Tuenti","LotusNotes","SAP","GTP","UPnP","LLMNR","RemoteScan","Spotify","WebM","H323","OpenVPN","NOE","CiscoVPN","TeamSpeak","TOR","CiscoSkinny","RTCP","RSYNC","Oracle","Corba","UbuntuONE","Whois-DAS","Collectd","SOCKS5","SOCKS4","RTMP","FTP_DATA","Wikipedia","ZeroMQ","Amazon","eBay","CNN","Megaco","Redis","Pando_Media_Booster","VHUA","Telegram","FacebookChat","Pandora","Vevo"
@@ -133,56 +145,57 @@ var init = ndpi.init();
 
 console.log("Listening on " + pcap_session.device_name);
 
-function onProto(id, packet) {
+var onProto = function(id, packet) {
 	if (id > 0) console.log("Proto: "+id+" "+L7PROTO[id]);
 }
 
-function handleFlowInfo(flow_info){
+var handleFlowInfo = function(flow_info){
 	console.log(flow_info);
 }
 
 
-function getFlowInfo(packet,l7_protocol){
+var getFlowInfo = function(packet,l7_protocol){
 	if(packet.payload.payload instanceof IPv4){
 		var ip = packet.payload.payload;
 		var saddr = ip.saddr;
 		var daddr = ip.daddr;
 		var sport = null;
-	    var dport = null;	
+	    	var dport = null;
 		var tsl_packet = packet.payload.payload.payload;
 		var tsl_protocol = '';
 		if(tsl_packet instanceof TCP){
 			tsl_protocol = 'tcp';
 			sport = tsl_packet.sport;
-			dport = tsl_packet.dport;	
+			dport = tsl_packet.dport;
+			return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
 		}else if (tsl_packet instanceof UDP){
 			tsl_protocol = 'udp';
 			sport = tsl_packet.sport;
 			dport = tsl_packet.dport;
+			return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
 		}else{
 			tsl_protocol = 'unknown';
 			sport = tsl_packet.sport;
 			dport = tsl_packet.dport;
+			console.log('skip!');
 		}
-		return {l7_protocol,tsl_protocol,saddr,daddr,sport,dport};
-	
 	}
 }
 
 
-function onPacketAnalyzedCallback(flow_info){
+var onPacketAnalyzedCallback = function(flow_info){
   console.log("flow from "+flow_info.saddr+":"+flow_info.sport+" to "+flow_info.daddr+":"+flow_info.dport+" with protocol : "+flow_info.l7_protocol);
 }
 
-function ndpiPipe(h,p,callback){
+var ndpiPipe = function(h,p,callback){
 	(function(header,packet){
 		ndpi.addProtocolHandler(function(id,p){
 			if(id > 0){
 				var protocol = L7PROTO[id];
-				var pkt = pcap.decode.packet(packet); 
-				var flow_info = getFlowInfo(pkt,protocol);	
+				var pkt = pcap.decode.packet(packet);
+				var flow_info = getFlowInfo(pkt,protocol);
 				callback(flow_info);
-			}
+			} else { return; }
 		});
 		ndpi.processPacket(header, packet.buf);
 	})(h,p);
@@ -199,9 +212,9 @@ function ndpiPipe(h,p,callback){
 
 var exit = false;
 
-process.on('exit', function() {
-    exports.callback; onProto;
-    console.log('Total Packets: '+counter);
+process.on('exit', function(e) {
+    console.log('Total Packets: '+counter,e);
+    runner.callback_Ptr; runner; onProto; ndpi;
 });
 
 process.on('SIGINT', function() {

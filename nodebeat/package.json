@@ -5,13 +5,13 @@
   "version": "0.0.1",
   "dependencies": {
     "ffi": "*",
+    "node-cache": "^3.2.1",
+    "pcap": "git+https://github.com/mranney/node_pcap.git",
+    "pcap-parser": "*",
     "ref": "*",
     "ref-array": "*",
     "ref-struct": "*",
-    "pcap": "*",
-    "pcap-parser": "*",
-    "elastic-queue": "*",
-    "weak": "*"
+    "elastic-queue": "*"
   },
   "config": {
     "unsafe-perm":true
