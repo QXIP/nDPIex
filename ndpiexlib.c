@@ -185,7 +185,7 @@ void addProtocolHandler(callback handler) {
 }
 
 void onProtocol(uint16_t id, const uint8_t *packet) {
-    if (protocolHandler) {
+    if (protocolHandler && id) {
         protocolHandler(id, packet);
     }
 }
@@ -475,7 +475,7 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
     else {
         static u_int8_t frag_warning_used = 0;
         if (frag_warning_used == 0) {
-          //  printf("\n\nWARNING: fragmented ip packets are not supported and will be skipped \n\n");
+            printf("\n\nWARNING: fragmented ip packets are not supported and will be skipped \n\n");
           //  sleep(2);
             frag_warning_used = 1;
         }
@@ -487,7 +487,7 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
     
     if (flow != NULL) {
         flow->detected_protocol = protocol;
-	///	printf("\nproto: %u %s",protocol.protocol, ndpi_get_proto_name(ndpi_struct, flow->detected_protocol.protocol) );
+	//	printf("\nproto: %u %s",protocol.protocol, ndpi_get_proto_name(ndpi_struct, flow->detected_protocol.protocol) );
 	onProtocol(flow->detected_protocol.protocol, packet);
     }
     
@@ -618,7 +618,7 @@ static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header
         // process the packet
         packet_processing(time, iph, header->len - sizeof(struct ethhdr), header->len, packet);
     }
-
+    return;
 }
 
 static void runPcapLoop(void)

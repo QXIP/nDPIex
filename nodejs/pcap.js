@@ -31,7 +31,6 @@ class MyClient extends BaseClient{
     }
 }
 
-
 //var client = new MyClient(CONF['serverAddr']);
 var client = null;
 var IPv4 = require('pcap/decode/ipv4');
@@ -69,25 +68,18 @@ runner.callback_Ptr = ArrayType(runner.wchar_t);
 
 /* APP VARS */
 
-var voidPtr = exports.voidPtr = ref.refType(ref.types.void);
-var u_char = exports.u_char = Struct({
-  __u_char: ref.types.uchar,
-});
-var u_charPtr = exports.u_charPtr = ref.refType(u_char);
-
-var uint8_t = exports.uint8_t = voidPtr;
-var uint8_tPtr = exports.uint8_tPtr = ref.refType(uint8_t);
-
+runner.voidPtr = exports.voidPtr = ref.refType(ref.types.void);
+runner.uint8_t = exports.uint8_t = runner.voidPtr;
+runner.uint8_tPtr = exports.uint8_tPtr = ref.refType(runner.uint8_t);
 runner.callback = exports.callback = ffi.Function(ref.types.void, [
   ref.types.int32,
   ref.refType(ref.types.uchar)
 ]);
-
-var pcap_t = exports.pcap_t = voidPtr;
-var pcap_tPtr = exports.pcap_tPtr = ref.refType(pcap_t);
+runner.pcap_t = exports.pcap_t = runner.voidPtr;
+runner.pcap_tPtr = exports.pcap_tPtr = ref.refType(runner.pcap_t);
 runner.pcap_handler = exports.pcap_handler = ffi.Function(ref.types.void, [
   ref.refType(ref.types.uchar),
-  voidPtr,
+  runner.voidPtr,
   ref.refType(ref.types.uchar)
 ]);
 runner.pcap_handlerPtr = exports.pcap_handlerPtr = ref.refType(runner.pcap_handler);
@@ -103,24 +95,20 @@ var pcap_pkthdr = Struct({
 var pktHdr = new pcap_pkthdr;
 pktHdr = ref.refType(ref.types.void);
 
-
-/*
-var gcallback = ffi.Callback('void', [ref.types.int32, ref.refType(ref.types.uchar)],
-  function(id, name) {
+runner.gcallback = ffi.Callback('void', [ref.types.int32, ref.refType(ref.types.uchar)],
+  function(id) {
     console.log("id: ", id);
-    console.log("proto: ", name);
   });
-*/
 
 runner.ndpi = exports.ndpi = new ffi.Library('../ndpiexlib.so', {
   init: [ref.types.void, [
   ]],
   setDatalinkType: [ref.types.void, [
-      pcap_tPtr,
+      runner.pcap_tPtr,
   ]],
   processPacket: [ref.types.void, [
-    voidPtr,
-    uint8_t,
+    runner.voidPtr,
+    runner.uint8_t,
   ]],
   finish: [ref.types.void, [
   ]],
@@ -144,7 +132,7 @@ var init = runner.ndpi.init();
 var reboot = function(){
 	runner.ndpi.finish();
 	runner.ndpi.init();
-	console.log('nDPI restarted!');
+	//console.log('nDPI restarted!');
 }
 
 /* PCAP LOOP */
@@ -188,27 +176,23 @@ runner.onPacketAnalyzedCallback = function(flow_info){
   console.log("flow from "+flow_info.saddr+":"+flow_info.sport+" to "+flow_info.daddr+":"+flow_info.dport+" with protocol : "+flow_info.l7_protocol);
 }
 
-runner.ndpiPipe = function(h,p,callback){
-	(function(header,packet){
+runner.ndpi.addProtocolHandler(runner.onProto);
+runner.ndpiPipe = function(header,packet,callback){
 		runner.ndpi.addProtocolHandler(function(id,p){
 			if(id > 0){
-				var protocol = L7PROTO[id];
-				var pkt = pcap.decode.packet(packet);
-				var flow_info = runner.getFlowInfo(pkt,protocol);
-				callback(flow_info);
-			} else { return; }
+				callback(runner.getFlowInfo(pcap.decode.packet(packet),L7PROTO[id]));
+			}
 		});
 		runner.ndpi.processPacket(header, packet.buf);
-	})(h,p);
 }
 
-    pcap_session.on('packet', function (raw_packet) {
+pcap_session.on('packet', function (raw_packet) {
         if (raw_packet.header) {
             counter++;
             runner.ndpiPipe(raw_packet.header.ref(), raw_packet, runner.onPacketAnalyzedCallback );
-	    if (counter % 5000 === 0 ) { reboot(); }
+	    if (counter % 200 === 0 ) { reboot(); }
         }
-    });
+});
 
 
 
@@ -216,7 +200,7 @@ var exit = false;
 
 process.on('exit', function() {
     console.log('Total Packets: '+counter);
-    var gc = runner;
+    runner;
 });
 
 process.on('SIGINT', function() {
