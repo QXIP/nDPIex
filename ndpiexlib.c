@@ -246,7 +246,7 @@ static void debug_printf(u_int32_t protocol, void *id_struct, ndpi_log_level_t l
         va_list ap;
         va_start(ap, format);
         
-        protocol_string = prot_short_str[protocol.protocol];
+        protocol_string = prot_short_str[protocol.app_protocol];
         
         ndpi_debug_get_last_log_function_line(ndpi_struct, &file, &func, &line);
         
@@ -482,13 +482,13 @@ static unsigned int packet_processing(const uint64_t time, const struct iphdr *i
         return 0;
     }
     
-    protocol_counter[protocol.protocol]++;
-    protocol_counter_bytes[protocol.protocol] += rawsize;
+    protocol_counter[protocol.app_protocol]++;
+    protocol_counter_bytes[protocol.app_protocol] += rawsize;
     
     if (flow != NULL) {
         flow->detected_protocol = protocol;
-	//	printf("\nproto: %u %s",protocol.protocol, ndpi_get_proto_name(ndpi_struct, flow->detected_protocol.protocol) );
-	onProtocol(flow->detected_protocol.protocol, packet);
+	//	printf("\nproto: %u %s",protocol.app_protocol, ndpi_get_proto_name(ndpi_struct, flow->detected_protocol.app_protocol) );
+	onProtocol(flow->detected_protocol.app_protocol, packet);
     }
     
     return 0;
@@ -512,7 +512,7 @@ static void printResults(void)
 
         // count flows for that protocol
         for (j = 0; j < osdpi_flow_count; j++) {
-            if (osdpi_flows[j].detected_protocol.protocol == i) {
+            if (osdpi_flows[j].detected_protocol.app_protocol == i) {
                 protocol_flows++;
             }
         }
@@ -544,7 +544,7 @@ static void dumpResults(void)
 
         // count flows for that protocol
         for (j = 0; j < osdpi_flow_count; j++) {
-            if (osdpi_flows[j].detected_protocol.protocol == i) {
+            if (osdpi_flows[j].detected_protocol.app_protocol == i) {
                 protocol_flows++;
             }
         }
