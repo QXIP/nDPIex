@@ -1,7 +1,7 @@
 {
   "name": "ndpi-nodebeat",
   "description": "nDPI NodeBeat for Elasticsearch",
-  "author": "lmangani@gmailcom",
+  "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com>",
   "version": "0.0.1",
   "dependencies": {
     "ffi": "*",
