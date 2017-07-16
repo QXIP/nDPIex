@@ -1,7 +1,7 @@
 {
   "name": "ndpi-node",
   "description": "nDPI Node",
-  "author": "lmangani",
+  "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com>",
   "dependencies": {
     "ffi": "*",
     "node-cache": "^3.2.1",

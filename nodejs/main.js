@@ -2,7 +2,7 @@
 /*  (c) 2015 L. Mangani, QXIP BV 	*/
 /*  http://qxip.net 			*/
 
-var VERSION = "0.1.3";
+var VERSION = "0.1.4";
 
 /* NODE REQs */ 
 
@@ -105,8 +105,10 @@ counter = 0;
 
 
 	function ndpiPipe(h,p){
+	   try {
 		ndpi.addProtocolHandler(onProto);
 	    	ndpi.processPacket(h, p );
+	   } catch(e) { console.log(e); }
 
 	}
 

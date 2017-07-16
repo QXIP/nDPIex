@@ -178,12 +178,14 @@ runner.onPacketAnalyzedCallback = function(flow_info){
 
 runner.ndpi.addProtocolHandler(runner.onProto);
 runner.ndpiPipe = function(header,packet,callback){
+	try {
 		runner.ndpi.addProtocolHandler(function(id,p){
 			if(id > 0){
 				callback(runner.getFlowInfo(pcap.decode.packet(packet),L7PROTO[id]));
 			}
 		});
 		runner.ndpi.processPacket(header, packet.buf);
+	} catch(e) { console.log(e); }
 }
 
 pcap_session.on('packet', function (raw_packet) {

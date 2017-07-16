@@ -165,8 +165,10 @@ if (debug) client.log = 'trace';
 	console.log("Listening on " + pcap_session.device_name);
 
 	var ndpiPipe = exports.ndpiPipe = function(h,p){
+		try {
 			ndpi.addProtocolHandler(onProto);
 			ndpi.processPacket(h, p );
+		} catch(e) { console.log(e); }
 	}
 
 	pcap_session.on('packet', function (raw_packet) {
