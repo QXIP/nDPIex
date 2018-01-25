@@ -6,7 +6,8 @@ var VERSION = "0.1.4";
 
 /* NODE REQs */ 
 
-var ffi = require('ffi');
+var ffi = require('ffi-napi');
+//var ffi = require('ffi');
 var ref = require("ref");
 var Struct = require('ref-struct');
 var ArrayType = require('ref-array');
@@ -44,7 +45,7 @@ if (process.argv[2]) {
 
 
 /* callback */ 
-	var onProto = function(id, packet) {
+	const onProto = function(id, packet) {
 		if (id > 0) { console.log("Proto: "+packet+" ("+id+")") }
 	}
 
@@ -101,19 +102,17 @@ console.log("INIT");
 console.log("SET DATALINK");
 
 	function ndpiPipe(h,p){
+	   if(p===undefined) return;
 	   try {
 	       ndpi.addProtocolHandler(onProto);
 	       ndpi.processPacket(h, p);
-	   } catch(e) { console.log(e); }
+	   } catch(e) { console.log(e); console.log(h,p); }
 
 	}
 
 
 pcap_parser.on('packet', function (raw_packet) {
 	counter++;
-	var onProto = function(id, packet) {
-	    if (id > 0) { console.log("Proto: "+packet+" ("+id+")") }
-	}
 	var header = raw_packet.header;
 	// Build PCAP Hdr Struct
 	var newHdr = new pcap_pkthdr();

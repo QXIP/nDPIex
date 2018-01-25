@@ -3,7 +3,7 @@
   "description": "nDPI Node",
   "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com>",
   "dependencies": {
-    "ffi": "*",
+    "ffi-napi": "^2.4.2",
     "node-cache": "^3.2.1",
     "pcap": "git+https://github.com/mranney/node_pcap.git",
     "pcap-parser": "*",
