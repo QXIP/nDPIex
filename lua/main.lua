@@ -53,7 +53,7 @@ local L7PROTO = {
 function onProtocol(id, packet)
    if id >= 2 then
 	   io.write("Proto: ")
-	   print(L7PROTO[id+1])
+	   print(  ffi.string(packet), "ID:", id)
    end
 end
 
