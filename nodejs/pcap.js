@@ -178,22 +178,22 @@ runner.onPacketAnalyzedCallback = function(flow_info){
 
 runner.ndpi.addProtocolHandler(runner.onProto);
 runner.ndpiPipe = function(header,packet,callback){
-	try {
-		runner.ndpi.addProtocolHandler(function(id,p){
-			if(id > 0){
-				callback(runner.getFlowInfo(pcap.decode.packet(packet),L7PROTO[id]));
-			}
-		});
-		runner.ndpi.processPacket(header, packet.buf);
-	} catch(e) { console.log(e); }
+    try {
+	runner.ndpi.addProtocolHandler(function(id,p){
+	    if(id > 0){
+		callback(runner.getFlowInfo(pcap.decode.packet(packet),L7PROTO[id]));
+	    }
+	});
+	runner.ndpi.processPacket(header, packet.buf);
+    } catch(e) { console.log(e); }
 }
 
 pcap_session.on('packet', function (raw_packet) {
-        if (raw_packet.header) {
-            counter++;
-            runner.ndpiPipe(raw_packet.header.ref(), raw_packet, runner.onPacketAnalyzedCallback );
-	    if (counter % 200 === 0 ) { reboot(); }
-        }
+    if (raw_packet.header) {
+        counter++;
+        runner.ndpiPipe(raw_packet.header.ref(), raw_packet, runner.onPacketAnalyzedCallback );
+	if (counter % 200 === 0) { reboot(); }
+    }
 });
 
 
