@@ -44,13 +44,13 @@
 #define	MAX_OSDPI_FLOWS          100000
 #define TICK_RESOLUTION          1000
 
-typedef void (*callback)(int, const uint8_t *packet);
+typedef void (*callback)(int, const u_int8_t *packet);
 typedef void (*databack)(int, int, int, int, int, char );
 
 // prototypes used function
 void init();
 void setDatalinkType(pcap_t *handle);
-void processPacket(const struct pcap_pkthdr *header, const uint8_t *packet);
+void processPacket(const struct pcap_pkthdr *header, const u_char *packet);
 void finish();
 void addProtocolHandler(callback handler);
 
@@ -127,7 +127,7 @@ void addProtocolHandler(callback handler) {
   protocolHandler = handler;
 }
 
-void onProtocol(uint16_t id, const uint8_t *packet) {
+void onProtocol(u_int16_t id, const u_int8_t *packet) {
   if (protocolHandler && id) {
     protocolHandler(id, packet);
   }
@@ -554,7 +554,6 @@ static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header
   u_int16_t type;
 
   // check datalink type
-  _pcap_datalink_type = pcap_datalink(_pcap_handle);
 
   
   /* --- Ethernet header --- */
@@ -579,8 +578,7 @@ static void pcap_packet_callback(u_char * args, const struct pcap_pkthdr *header
   
   // just work on Ethernet packets that contain IP
   /*** TODO: extend datalink type support ***/
-  if (_pcap_datalink_type == DLT_EN10MB &&
-      type == htons(ETH_P_IP) &&
+  if (type == htons(ETH_P_IP) &&
       header->caplen >= sizeof(struct ethhdr)) {
 
     if(header->caplen < header->len) {
