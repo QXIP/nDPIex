@@ -449,7 +449,7 @@ static unsigned int packet_processing(const u_int64_t time,
   if(flow != NULL) {
     flow->detected_protocol = protocol;
     ///	printf("\nproto: %u %s",protocol.app_protocol, ndpi_get_proto_name(ndpi_info_mod, flow->detected_protocol.app_protocol) );
-    onProtocol(flow->detected_protocol.app_protocol, NULL);
+    onProtocol(flow->detected_protocol.app_protocol, ndpi_get_proto_name(ndpi_info_mod, flow->detected_protocol.app_protocol) );
   }
   return 0;
 }
