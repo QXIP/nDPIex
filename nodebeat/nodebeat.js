@@ -25,7 +25,7 @@ if (debug) client.log = 'trace';
 /* NODE REQs */ 
 
 	var ref = require('ref');
-	var ffi = require('ffi');
+	var ffi = require('ffi-napi');
 	var Struct = require('ref-struct');
 //	var ArrayType = require('ref-array');
 	var pcap = require("pcap");
@@ -124,11 +124,6 @@ if (debug) client.log = 'trace';
 	  ]],
 	});
 
-	var L7PROTO = [
-	"Unknown","FTP_CONTROL","POP3","SMTP","IMAP","DNS","IPP","HTTP","MDNS","NTP","NetBIOS","NFS","SSDP","BGP","SNMP","XDMCP","SMB","Syslog","DHCP","PostgreSQL","MySQL","TDS","Direct_Download_Link","POPS","AppleJuice","DirectConnect","Socrates","WinMX","VMware","SMTPS","Filetopia","iMESH","Kontiki","OpenFT","FastTrack","Gnutella","eDonkey","BitTorrent","EPP","AVI","Flash","OggVorbis","MPEG","QuickTime","RealMedia","WindowsMedia","MMS","Xbox","QQ","Move","RTSP","IMAPS","IceCast","PPLive","PPStream","Zattoo","ShoutCast","Sopcast","Tvants","TVUplayer","HTTP_APPLICATION_VEOHTV","QQLive","Thunder","Soulseek","SSL_No_Cert","IRC","Ayiya","Unencryped_Jabber","MSN","Oscar","Yahoo","BattleField","Quake","VRRP","Steam","HalfLife2","WorldOfWarcraft","Telnet","STUN","IPsec","GRE","ICMP","IGMP","EGP","SCTP","OSPF","IP_in_IP","RTP","RDP","VNC","PcAnywhere","SSL","SSH","Usenet","MGCP","IAX","TFTP","AFP","Stealthnet","Aimini","SIP","TruPhone","ICMPV6","DHCPV6","Armagetron","Crossfire","Dofus","Fiesta","Florensia","Guildwars","HTTP_Application_ActiveSync","Kerberos","LDAP","MapleStory","MsSQL","PPTP","Warcraft3","WorldOfKungFu","Meebo","Facebook","Twitter","DropBox","GMail","GoogleMaps","YouTube","Skype","Google","DCE_RPC","NetFlow","sFlow","HTTP_Connect","HTTP_Proxy","Citrix","NetFlix","LastFM","GrooveShark","SkyFile_PrePaid","SkyFile_Rudics","SkyFile_PostPaid","Citrix_Online","Apple","Webex","WhatsApp","AppleiCloud","Viber","AppleiTunes","Radius","WindowsUpdate","TeamViewer","Tuenti","LotusNotes","SAP","GTP","UPnP","LLMNR","RemoteScan","Spotify","WebM","H323","OpenVPN","NOE","CiscoVPN","TeamSpeak","TOR","CiscoSkinny","RTCP","RSYNC","Oracle","Corba","UbuntuONE","Whois-DAS","Collectd","SOCKS5","SOCKS4","RTMP","FTP_DATA","Wikipedia","ZeroMQ","Amazon","eBay","CNN","Megaco","Redis","Pando_Media_Booster","VHUA","Telegram","FacebookChat","Pandora","Vevo"
-	]
-
-
 	/* PCAP LOOP */
 
 	var getIndex = exports.getIndex = function(){
@@ -136,15 +131,16 @@ if (debug) client.log = 'trace';
 		return "ndpibeat-"+new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())).toISOString().slice(0, 10).replace(/-/g, '.');
 	}
 
-	var onProto = exports.onProto = function(id, packet) {
+	const onProto = exports.onProto = function(id, packet) {
+	  try {
+
 	    if (id > 0) {
-		// console.log("Proto: "+id+" "+L7PROTO[id]);
 		var doc = {
 		  index: getIndex(),
 		  type: 'ndpi',
 		  body: {
 		      ts: (new Date()).toISOString(),
-		      proto_name: L7PROTO[id],
+		      proto_name: packet,
 		      proto_id: id
 		  }
 		};
@@ -156,6 +152,7 @@ if (debug) client.log = 'trace';
 		  // return console.log(resp);
 		});
 	    }
+	  } catch(e) { console.log(e); }
 	}
 
 	/* APP */

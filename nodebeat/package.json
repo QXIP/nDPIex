@@ -4,17 +4,17 @@
   "author": "Lorenzo Mangani <lorenzo.mangani@gmail.com>",
   "version": "0.0.1",
   "dependencies": {
-    "ffi": "*",
+    "elastic-queue": "*",
+    "ffi-napi": "^2.4.2",
     "node-cache": "^3.2.1",
     "pcap": "git+https://github.com/mranney/node_pcap.git",
     "pcap-parser": "*",
     "ref": "*",
     "ref-array": "*",
-    "ref-struct": "*",
-    "elastic-queue": "*"
+    "ref-struct": "*"
   },
   "config": {
-    "unsafe-perm":true
+    "unsafe-perm": true
   },
   "scripts": {
     "start": "node nodebeat.js"
