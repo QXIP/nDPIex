@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ ! -d "nDPI" ]; then
-    git clone https://github.com/ntop/nDPI.git
+	git clone https://github.com/ntop/nDPI
 fi
 cd nDPI
 git pull
