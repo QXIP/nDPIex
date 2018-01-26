@@ -1,0 +1,13 @@
+{
+  "name": "ndpi-node",
+  "module_name": "ndpi-node",
+  "version": "1.0.0",
+  "private": true,
+  "gypfile": true,
+  "dependencies": {
+    "ffi-napi": "^2.4.2",
+    "ref": "*",
+    "ref-array": "*",
+    "ref-struct": "*"
+  }
+}
