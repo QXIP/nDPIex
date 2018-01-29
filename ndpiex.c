@@ -494,7 +494,12 @@ static unsigned int packet_processing(const u_int64_t time,
     sleep(2);
     return -1;
   }
-    
+
+  /* This is necessary to avoid different detection from ndpiex and ndpiReader;
+     Inside nDPI there is a change from master and app protocol */
+  if(protocol.master_protocol != 0)
+    protocol.app_protocol = protocol.master_protocol;
+  
   protocol_counter[protocol.app_protocol]++;
   protocol_counter_bytes[protocol.app_protocol] += rawsize;
     
